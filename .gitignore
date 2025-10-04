@@ -1,0 +1,13 @@
+# Python cache files
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+
+# Python environment files
+.python-version
+.venv/
+poetry.lock
+
+# Project files
+models/
+data/
