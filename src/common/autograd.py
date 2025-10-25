@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 
 
@@ -33,7 +35,11 @@ class Value:
 
         return out
 
-    def __mul__(self, other: "Value" | int) -> "Value":
+    def __mul__(
+        self, other: Union["Value", int]
+    ) -> (
+        "Value"
+    ):  # some weird python black thing, so we made it use the union from typing instead(cuz it thinks its a string)
         other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data * other.data, (self, other), "*")
 
