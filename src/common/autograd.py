@@ -23,13 +23,60 @@ class Value:
         self._prev = set(_children)
         self._op = _op  # the op that produced this node, for graphviz / debugging / etc
 
+    def sum_to_shape(
+        self, tensor: np.ndarray, target_shape: tuple[int, ...]
+    ) -> np.ndarray:
+        """Sum a tensor along axes to match a target shape.
+
+        This handles two cases:
+        1. Extra dimensions that were added during broadcasting (sum them away)
+        2. Dimensions that were size 1 but broadcasted to larger (sum along them, keep dim=1)
+
+        Args:
+            tensor: numpy array to reshape
+            target_shape: tuple of desired shape
+
+        Returns:
+            tensor with shape matching target_shape
+        """
+        if tensor.shape == target_shape:  # the do nothing case
+            return tensor
+        # Start with the tensor as-is
+        result = tensor
+
+        # Case 1: Handle extra leading dimensions
+        # If tensor has more dimensions than target, sum away the extra leading ones
+        ndim_diff = result.ndim - len(target_shape)
+        if ndim_diff > 0:
+            # Sum along the extra leading axes
+            axes_to_sum = tuple(range(ndim_diff))
+            result = result.sum(axis=axes_to_sum, keepdims=False)
+
+        # Case 2: Handle dimensions that were broadcast from size 1
+        # Now result and target_shape should have same number of dimensions
+        for i, (result_dim, target_dim) in enumerate(zip(result.shape, target_shape)):
+            if target_dim == 1 and result_dim > 1:
+                # This dimension was broadcast from 1 to result_dim
+                # Sum along it and keep it as dimension 1
+                result = result.sum(axis=i, keepdims=True)
+        return result
+
     def __add__(self, other: "Value") -> "Value":
         other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data + other.data, (self, other), "+")
 
         def _backward() -> None:
-            self.grad += out.grad
-            other.grad += out.grad
+            # 1. old way
+            grad_self = out.grad
+            grad_other = out.grad
+
+            # 2. Fix shapes to handle broadcasting (new code)
+            grad_self = self.sum_to_shape(grad_self, self.data.shape)
+            grad_other = self.sum_to_shape(grad_other, other.data.shape)
+
+            # 3. Accumulate gradients
+            self.grad += grad_self
+            other.grad += grad_other
 
         out._backward = _backward
 
@@ -44,8 +91,17 @@ class Value:
         out = Value(self.data * other.data, (self, other), "*")
 
         def _backward() -> None:
-            self.grad += other.data * out.grad
-            other.grad += self.data * out.grad
+            # 1. Compute gradients (the old way)
+            grad_self = other.data * out.grad
+            grad_other = self.data * out.grad
+
+            # 2. Fix shapes to handle broadcasting (new code)
+            grad_self = self.sum_to_shape(grad_self, self.data.shape)
+            grad_other = self.sum_to_shape(grad_other, other.data.shape)
+
+            # 3. Accumulate gradients
+            self.grad += grad_self
+            other.grad += grad_other
 
         out._backward = _backward
 
@@ -55,13 +111,20 @@ class Value:
     def __matmul__(self, other: "Value") -> "Value":
         other = other if isinstance(other, Value) else Value(other)
         assert (
-            self.data.shape[1] == other.data.shape[0]
+            self.data.shape[-1] == other.data.shape[0]  # more general mat mul condition
         )  # make sure u can actually multiply them (dimension check)
         out = Value(self.data @ other.data, (self, other), "@")  # do the multiplication
 
         def _backward() -> None:
-            self.grad += out.grad @ (other.data.T)
-            other.grad += (self.data.T) @ out.grad
+            # 1. old way
+            grad_self = out.grad @ (other.data.T)
+            grad_other = (self.data.T) @ out.grad
+            # 2. fix shapes to handle broadcasting (new code)
+            grad_self = self.sum_to_shape(grad_self, self.data.shape)
+            grad_other = self.sum_to_shape(grad_other, other.data.shape)
+            # 3.
+            self.grad += grad_self
+            other.grad += grad_other
 
         out._backward = _backward
 
@@ -74,7 +137,12 @@ class Value:
         out = Value(self.data**other, (self,), f"**{other}")
 
         def _backward() -> None:
-            self.grad += (other * self.data ** (other - 1)) * out.grad
+            # 1. old way
+            grad_self = (other * self.data ** (other - 1)) * out.grad
+            # 2. Fix shapes to handle broadcasting (new code)
+            grad_self = self.sum_to_shape(grad_self, self.data.shape)
+            # 3. Accumalte grad
+            self.grad += grad_self
 
         out._backward = _backward
 
@@ -85,16 +153,26 @@ class Value:
         out = Value(np.exp(self.data), (self,), "exp")
 
         def _backward() -> None:
-            self.grad += out.data * out.grad  # what is out.grad again?
+            # 1. old way
+            grad_self = out.data * out.grad
+            # 2. Fix shapes to handle broadcasting (new code)
+            grad_self = self.sum_to_shape(grad_self, self.data.shape)
+            # 3. Accumalte grad
+            self.grad += grad_self
 
         out._backward = _backward
         return out
 
     def relu(self) -> "Value":
-        out = Value(0 if self.data < 0 else self.data, (self,), "ReLU")
+        out = Value(0 if self.data.any() < 0 else self.data, (self,), "ReLU")
 
         def _backward() -> None:
-            self.grad += (out.data > 0) * out.grad
+            # 1. old way
+            grad_self = (out.data > 0) * out.grad
+            # 2. Fix shapes to handle broadcasting (new code)
+            grad_self = self.sum_to_shape(grad_self, self.data.shape)
+            # 3. Accumalte grad
+            self.grad += grad_self
 
         out._backward = _backward
 

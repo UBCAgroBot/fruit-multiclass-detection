@@ -1,7 +1,8 @@
 import numpy as np
 from autograd import Value
 
-if __name__ == "__main__":
+
+def issueSixTest() -> None:
     a = Value(5)  # single value working
     print(a.data)
     b = Value(10)  # single value working
@@ -38,3 +39,65 @@ if __name__ == "__main__":
     c.backward()  # key
     print(a.grad)  # dc/da
     print(b.grad)  # dc/db
+
+
+def issueSevenTest() -> None:
+    x = Value(
+        np.array(
+            [
+                [[1, 2], [1, 2], [1, 2], [1, 2]],
+                [[3, 4], [1, 2], [1, 2], [1, 2]],
+                [[5, 6], [1, 2], [1, 2], [1, 2]],
+            ]
+        )
+    )  # shape (3,4,2)
+    y = Value(np.array([[10], [20], [30], [40]]))  # shape (4,1)
+
+    z = x * y  # (3, 4, 2) according to neil :c
+    print(z.data.shape)
+    z.backward()
+    print(x.grad.shape)  # should be (3,2,2)
+    print(y.grad.shape)  # should be (4,1)
+    print("-------------------------")
+    a = z + x  # (3,4,2)
+    a.backward()
+    print(x.grad.shape)  # should be (3,4,2)
+    print(z.grad.shape)  # should be (3,4,2)
+    print("-------------------------")
+    c = z - y  # (3,4,2)
+    c.backward()
+    print(z.grad.shape)  # should be (3,4,2)
+    print(y.grad.shape)  # should be (4,1)
+    print("-------------------------")
+    d = z / y  # (3,4,2)
+    d.backward()
+    print(z.grad.shape)  # should be (3,4,2)
+    print(y.grad.shape)  # should be (4,1)
+    print("-------------------------")
+    e = d.exp()  # (3,4,2)
+    print(e.grad.shape)  # should be (3,4,2)
+    print(d.grad.shape)  # should be (3,4,2)
+    print("-------------------------")
+    f = e.relu()  # (3,4,2)
+    print(f.grad.shape)  # should be (3,4,2)
+    print(e.grad.shape)  # should be (3,4,2)
+    w = Value(
+        np.array(
+            [
+                [[3, 4, 1, 2], [3, 4, 1, 2]],
+                [[3, 4, 1, 2], [3, 4, 1, 2]],
+                [[3, 4, 1, 2], [3, 4, 1, 2]],
+                [[3, 4, 1, 2], [3, 4, 1, 2]],
+            ]
+        )
+    )  # shape (4,2,4)
+    r = Value(np.array([[10], [20], [30], [40]]))  # shape (4,1)
+    g = w @ r  # (4,2,2)
+    print(g.data.shape)
+    print(r.grad.shape)  # should be (3,4,2)
+    print(w.grad.shape)  # should be (3,4,2)
+
+
+if __name__ == "__main__":
+    # issueSixTest()
+    issueSevenTest()
