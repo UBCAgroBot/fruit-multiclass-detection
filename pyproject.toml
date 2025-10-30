@@ -4,9 +4,9 @@ version = "0.1.0"
 description = ""
 authors = [
     {name = "clay-arras",email = "astrollin.neil@gmail.com"},
-    {name = "rowan-cake",email = "cakerowan@gmail.com"}
-    {name = "markus-chu",email = "markuschu06@gmail.com"}
-    {name = "kevin-li",email = "kevin.shangkun.li@gmail.com"}
+    {name = "rowan-cake",email = "cakerowan@gmail.com"},
+    {name = "markus-chu",email = "markuschu06@gmail.com"},
+    {name = "kevin-li",email = "kevin.shangkun.li@gmail.com"},
     {name = "simo-becarevic",email = "becarevic.simo@gmail.com"}
 ]
 readme = "README.md"
