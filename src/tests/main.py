@@ -1,5 +1,6 @@
 import numpy as np
-from autograd import Value
+
+from common.autograd import Value
 
 
 def issueSixTest() -> None:
@@ -81,21 +82,6 @@ def issueSevenTest() -> None:
     f = e.relu()  # (3,4,2)
     print(f.grad.shape)  # should be (3,4,2)
     print(e.grad.shape)  # should be (3,4,2)
-    w = Value(
-        np.array(
-            [
-                [[3, 4, 1, 2], [3, 4, 1, 2]],
-                [[3, 4, 1, 2], [3, 4, 1, 2]],
-                [[3, 4, 1, 2], [3, 4, 1, 2]],
-                [[3, 4, 1, 2], [3, 4, 1, 2]],
-            ]
-        )
-    )  # shape (4,2,4)
-    r = Value(np.array([[10], [20], [30], [40]]))  # shape (4,1)
-    g = w @ r  # (4,2,2)
-    print(g.data.shape)
-    print(r.grad.shape)  # should be (3,4,2)
-    print(w.grad.shape)  # should be (3,4,2)
 
 
 if __name__ == "__main__":

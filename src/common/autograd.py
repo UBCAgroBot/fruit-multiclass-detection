@@ -1,6 +1,10 @@
 from typing import Union
 
-import numpy as np
+try:
+    import cupy as np
+except ImportError:
+    print("CUDA not available, defaulting to numpy")
+    import numpy as np
 
 
 class Value:
@@ -111,18 +115,16 @@ class Value:
     def __matmul__(self, other: "Value") -> "Value":
         other = other if isinstance(other, Value) else Value(other)
         assert (
+            len(self.data.shape) == 2 and len(other.data.shape) == 2
+        )  # runtime error: both operands must be 2D matrices
+        assert (
             self.data.shape[-1] == other.data.shape[0]  # more general mat mul condition
         )  # make sure u can actually multiply them (dimension check)
         out = Value(self.data @ other.data, (self, other), "@")  # do the multiplication
 
         def _backward() -> None:
-            # 1. old way
-            grad_self = out.grad @ (other.data.T)
-            grad_other = (self.data.T) @ out.grad
-            # 2. fix shapes to handle broadcasting (new code)
-            grad_self = self.sum_to_shape(grad_self, self.data.shape)
-            grad_other = self.sum_to_shape(grad_other, other.data.shape)
-            # 3.
+            grad_self = out.grad @ other.data.T
+            grad_other = self.data.T @ out.grad
             self.grad += grad_self
             other.grad += grad_other
 
