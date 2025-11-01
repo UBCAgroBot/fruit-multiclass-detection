@@ -139,12 +139,7 @@ class Value:
         out = Value(self.data**other, (self,), f"**{other}")
 
         def _backward() -> None:
-            # 1. old way
-            grad_self = (other * self.data ** (other - 1)) * out.grad
-            # 2. Fix shapes to handle broadcasting (new code)
-            grad_self = self.sum_to_shape(grad_self, self.data.shape)
-            # 3. Accumalte grad
-            self.grad += grad_self
+            self.grad += (other * self.data ** (other - 1)) * out.grad
 
         out._backward = _backward
 
@@ -155,12 +150,7 @@ class Value:
         out = Value(np.exp(self.data), (self,), "exp")
 
         def _backward() -> None:
-            # 1. old way
-            grad_self = out.data * out.grad
-            # 2. Fix shapes to handle broadcasting (new code)
-            grad_self = self.sum_to_shape(grad_self, self.data.shape)
-            # 3. Accumalte grad
-            self.grad += grad_self
+            self.grad += out.data * out.grad
 
         out._backward = _backward
         return out
@@ -169,12 +159,7 @@ class Value:
         out = Value(0 if self.data.any() < 0 else self.data, (self,), "ReLU")
 
         def _backward() -> None:
-            # 1. old way
-            grad_self = (out.data > 0) * out.grad
-            # 2. Fix shapes to handle broadcasting (new code)
-            grad_self = self.sum_to_shape(grad_self, self.data.shape)
-            # 3. Accumalte grad
-            self.grad += grad_self
+            self.grad += (out.data > 0) * out.grad
 
         out._backward = _backward
 
