@@ -205,7 +205,7 @@ class Value:
         return self * other**-1
 
     def __rtruediv__(self, other: "Value") -> "Value":  # other / self
-        return other * self**-1
+        return other * self**-1 
 
     def __repr__(self) -> "str":
         return f"Value(data={self.data}, grad={self.grad})"
