@@ -145,7 +145,6 @@ class Value:
 
         return out
 
-    # new code
     def exp(self) -> "Value":
         out = Value(np.exp(self.data), (self,), "exp")
 
@@ -163,6 +162,56 @@ class Value:
 
         out._backward = _backward
 
+        return out
+    
+    def sum(self, axis=None, keepdims=True) -> "Value":
+        # Sum over given axis
+        out = Value(np.sum(self.data, axis=axis, keepdims=keepdims), (self,), "sum")
+
+        def _backward():
+            # upstream gradient is broadcasted back to original shape
+            grad_self = out.grad * np.ones_like(self.data)
+            self.grad += grad_self
+
+        out._backward = _backward
+        return out
+
+    def min(self, axis=None, keepdims=True) -> "Value":
+        # Compute min over given axis
+        out = Value(np.min(self.data, axis=axis, keepdims=keepdims), (self,), "min")
+
+        def _backward():
+            # Which elements equal to min value
+            mask = (self.data == out.data)
+            grad_self = out.grad * mask
+            self.grad += grad_self
+
+        out._backward = _backward
+        return out
+    
+    def mean(self, axis=None, keepdims=True) -> "Value":
+        # Mean over given axis
+        out = Value(np.mean(self.data, axis=axis, keepdims=keepdims), (self,), "mean")
+
+        def _backward():
+            # upstream gradient is broadcasted back to original shape
+            grad_self = out.grad * np.ones_like(self.data)
+            self.grad += grad_self
+
+        out._backward = _backward
+        return out
+
+    def max(self, axis=None, keepdims=True) -> "Value":
+        # Compute min over given axis
+        out = Value(np.max(self.data, axis=axis, keepdims=keepdims), (self,), "max")
+
+        def _backward():
+            # Which elements equal to max value
+            mask = (self.data == out.data)
+            grad_self = out.grad * mask
+            self.grad += grad_self
+
+        out._backward = _backward
         return out
 
     def backward(self) -> None:
