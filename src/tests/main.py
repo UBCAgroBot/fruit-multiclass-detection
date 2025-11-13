@@ -132,10 +132,21 @@ def issueEightTest() -> None:
     print(f"a1 grad: {a1.grad}")
     print(f"b2 grad: {b2.grad}")
 
+def issueNineTest() -> None:
+    print("Reshaping")
+    a1 = Value(np.array([[8, 3, 1],
+                        [1, 5, 3],
+                        [9, 2, 2]]))
+    b2 = "empty_for_now"
+    b2.backward()
+    print(f"a1 data: {a1.data}")
+    print(f"b2 data: {b2.data}")
+    print(f"a1 grad: {a1.grad}")
+    print(f"b2 grad: {b2.grad}")
 
 
 
 if __name__ == "__main__":
     # issueSixTest()
-    issueSevenTest()
+    # issueSevenTest()
     issueEightTest()
