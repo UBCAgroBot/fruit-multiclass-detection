@@ -83,7 +83,59 @@ def issueSevenTest() -> None:
     print(f.grad.shape)  # should be (3,4,2)
     print(e.grad.shape)  # should be (3,4,2)
 
+def issueEightTest() -> None:
+    print("----Reduction Operations (issue 8)")
+    print("1. Sum")
+    a1 = Value(np.array([[8, 3, 1],
+                        [1, 5, 3],
+                        [9, 2, 2]]))
+    b2 = a1.sum(axis = 0)
+    b2.backward()
+    print(f"a1 data: {a1.data}")
+    print(f"b2 data: {b2.data}")
+    print(f"a1 grad: {a1.grad}")
+    print(f"b2 grad: {b2.grad}")
+
+    print("-------------")
+    print("2. Min")
+    a1 = Value(np.array([[8, 3, 1],
+                        [1, 5, 3],
+                        [9, 2, 2]]))
+    b2 = a1.min(axis = 0)
+    b2.backward()
+    print(f"a1 data: {a1.data}")
+    print(f"b2 data: {b2.data}")
+    print(f"a1 grad: {a1.grad}")
+    print(f"b2 grad: {b2.grad}")
+
+    print("-------------")
+    print("3. Max")
+    a1 = Value(np.array([[8, 3, 1],
+                        [1, 5, 3],
+                        [9, 2, 2]]))
+    b2 = a1.max(axis = 0)
+    b2.backward()
+    print(f"a1 data: {a1.data}")
+    print(f"b2 data: {b2.data}")
+    print(f"a1 grad: {a1.grad}")
+    print(f"b2 grad: {b2.grad}")
+
+    print("-------------")
+    print("4. Mean")
+    a1 = Value(np.array([[8, 3, 1],
+                        [1, 5, 3],
+                        [9, 2, 2]]))
+    b2 = a1.mean(axis = 0)
+    b2.backward()
+    print(f"a1 data: {a1.data}")
+    print(f"b2 data: {b2.data}")
+    print(f"a1 grad: {a1.grad}")
+    print(f"b2 grad: {b2.grad}")
+
+
+
 
 if __name__ == "__main__":
     # issueSixTest()
     issueSevenTest()
+    issueEightTest()
