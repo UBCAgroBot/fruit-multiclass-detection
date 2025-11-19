@@ -43,18 +43,36 @@ class Module(ABC):
         super().__setattr__("params", {})  # real param store: name -> Value or Module
 
     @abstractmethod
-    def foward(self, *args: Any, **kwargs: Any) -> None:
-        # abstract method
-        print("foward method not implemented")
+    def forward(self, *args: Any, **kwargs: Any) -> Value:
+        """Compute the forward pass for this module."""
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        # will call self.foward!
-        return self.foward(*args, **kwargs)
+        raise NotImplementedError
 
-    def __setattr__(self, key: str, Val: "Value") -> None:
+    def __call__(self, *args: Any, **kwargs: Any) -> Value:
+        # will call self.forward!
+        return self.forward(*args, **kwargs)
+
+    def __setattr__(self, key: str, value: Any) -> None:
         # Always set the actual attribute first
-        super().__setattr__(key, Val)
-        self.params[key] = Val
+        super().__setattr__(key, value)
+
+        # Skip bookkeeping for the param store itself. Without this guard, the
+        # act of constructing the store would try to register "params" inside
+        # itself, creating incorrect entries and breaking parameter traversal in
+        # ``parameters``/``zero_grad``.
+        if key == "params":
+            return
+
+        # Attribute names arrive without a "self." prefix (e.g., "x"), so we
+        # can register them directly under that key. Only Value and Module
+        # instances belong in the parameter registry; other attribute types
+        # should not be exposed to ``parameters``. When an attribute is replaced
+        # with a non-parameter value, we drop the stale entry to keep the
+        # registry in sync with the current state of the object.
+        if isinstance(value, (Value, Module)):
+            self.params[key] = value
+        else:
+            self.params.pop(key, None)
 
     def parameters(self) -> Iterator[Value]:
         # recursively collects parameters and yields them (use a Generator)
