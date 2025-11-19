@@ -43,18 +43,25 @@ class Module(ABC):
         super().__setattr__("params", {})  # real param store: name -> Value or Module
 
     @abstractmethod
-    def foward(self, *args: Any, **kwargs: Any) -> None:
+    def forward(self, *args: Any, **kwargs: Any) -> None:
         # abstract method
-        print("foward method not implemented")
+        print("forward method not implemented")
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        # will call self.foward!
-        return self.foward(*args, **kwargs)
+        # will call self.forward!
+        return self.forward(*args, **kwargs)
 
-    def __setattr__(self, key: str, Val: "Value") -> None:
+    def __setattr__(self, key: str, Val: Any) -> None:
         # Always set the actual attribute first
         super().__setattr__(key, Val)
-        self.params[key] = Val
+
+        if key == "params":
+            return
+
+        if isinstance(Val, (Value, Module)):
+            self.params[key] = Val
+        else:
+            self.params.pop(key, None)
 
     def parameters(self) -> Iterator[Value]:
         # recursively collects parameters and yields them (use a Generator)
