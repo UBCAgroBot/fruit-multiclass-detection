@@ -1,7 +1,6 @@
 import numpy as np
-
-from common.autograd import Value
 from common.Module import Module
+from common.autograd import Value
 
 
 def issueSixTest() -> None:
@@ -135,7 +134,7 @@ def issueThirtenTest() -> None:
             super().__init__()
             self.x = Value(val)
 
-        def foward(self, num: "float") -> Value:
+        def forward(self, num: "float") -> Value:
             return self.x * num
 
     class T(Module):  # type: ignore[misc]
@@ -145,7 +144,7 @@ def issueThirtenTest() -> None:
             self.y = Value(15)
             self.z = N(69)
 
-        def foward(self, num: "float") -> Value:
+        def forward(self, num: "float") -> Value:
             return self.x + num
 
     obj = T(10)
