@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
-from typing import Any, Dict, Union
+from typing import Any, Dict, Generator, Union
 
 from common.autograd import Value
 
@@ -71,10 +70,8 @@ class Module(ABC):
         # registry in sync with the current state of the object.
         if isinstance(value, (Value, Module)):
             self.params[key] = value
-        else:
-            self.params.pop(key, None)
 
-    def parameters(self) -> Iterator[Value]:
+    def parameters(self) -> Generator[Value,None,None]:
         # recursively collects parameters and yields them (use a Generator)
         for key, param in self.params.items():
             if isinstance(param, Module):

@@ -143,11 +143,14 @@ def issueThirtenTest() -> None:
             self.x = Value(val)
             self.y = Value(15)
             self.z = N(69)
+            self.flag = "hi"
 
         def forward(self, num: "float") -> Value:
             return self.x + num
 
     obj = T(10)
+    #obj.zero_grad()
+    print(obj.flag)
     print(list(obj.parameters()))
 
 
