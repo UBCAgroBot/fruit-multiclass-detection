@@ -32,15 +32,10 @@ class Module(ABC):
     .. note::
         As per the example above, an ``__init__()`` call to the parent class
         must be made before assignment on the child."""
-
-    params: Dict[
-        str, Union[Value, "Module"]
-    ]  # to bypass mypys complaints that Module has no attribute of params
-
     def __init__(self) -> None:
-        # Bypass the overwritten __setattr__ to avoid self.params registering itself
-        super().__setattr__("params", {})  # real param store: name -> Value or Module
-
+        self.params: dict[str, Value | "Module"] = {} # real param store: name -> Value or Module
+  
+        
     @abstractmethod
     def forward(self, *args: Any, **kwargs: Any) -> Value:
         """Compute the forward pass for this module."""
