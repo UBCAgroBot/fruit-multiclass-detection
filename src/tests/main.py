@@ -1,6 +1,7 @@
 import numpy as np
-from common.Module import Module
+
 from common.autograd import Value
+from common.Module import Module
 
 
 def issueSixTest() -> None:
@@ -149,7 +150,7 @@ def issueThirtenTest() -> None:
             return self.x + num
 
     obj = T(10)
-    #obj.zero_grad()
+    # obj.zero_grad()
     print(obj.flag)
     print(list(obj.parameters()))
 
@@ -158,4 +159,5 @@ if __name__ == "__main__":
     # issueSixTest()
     # issueSevenTest()
     # issueEightTest()
-    issueThirtenTest()
+    # issueThirtenTest()
+    print("THESE TESTS ARE DEAD NOW GO USE DIFFERENTIAL_TEST.py")

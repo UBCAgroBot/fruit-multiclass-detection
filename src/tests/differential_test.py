@@ -25,7 +25,9 @@ class OperationTest:
     def __init__(self, torch_fn, our_fn, ranges) -> None:  # type: ignore
         self.torch_fn = torch_fn
         self.our_fn = our_fn
-        self.ranges = ranges
+        self.ranges = (
+            ranges  # ranges repersent what values the random tensors will take on.
+        )
         self.rtol = 1e-5
         self.atol = 1e-8
 
@@ -87,4 +89,6 @@ def test_compound(shape: Tuple[int, ...]) -> None:
     our_data = (
         res_our.data if isinstance(res_our.data, np.ndarray) else np.array(res_our.data)
     )
-    assert np.allclose(our_data, res_torch.numpy(), rtol=1e-5, atol=1e-8)
+    assert np.allclose(
+        our_data, res_torch.numpy(), rtol=1e-5, atol=1e-8
+    )  # nessacry when doing compound tests?
