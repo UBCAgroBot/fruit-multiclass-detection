@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 import pytest
@@ -8,13 +8,10 @@ from common.autograd import Value
 
 
 def random_tensors(
-    shape: Tuple[int, ...], ranges: Optional[Tuple[float, float]] = None
+    shape: Tuple[int, ...], ranges: Tuple[float, float] = (-10.0, 10.0)
 ) -> Tuple[torch.Tensor, Value]:
     # random tensor for both PyTorch and Value
-    if ranges is None:
-        low, high = -10.0, 10.0
-    else:
-        low, high = ranges
+    low, high = ranges
     t_torch = (high - low) * torch.rand(shape) + low
     t_value = Value(t_torch.clone().numpy())
     return t_torch, t_value
@@ -22,7 +19,7 @@ def random_tensors(
 
 # base class for differential tests
 class OperationTest:
-    def __init__(self, torch_fn, our_fn, ranges) -> None:  # type: ignore
+    def __init__(self, torch_fn, our_fn, ranges=(-10.0, 10.0)) -> None:  # type: ignore
         self.torch_fn = torch_fn
         self.our_fn = our_fn
         self.ranges = (
@@ -50,34 +47,32 @@ class OperationTest:
 
 
 # tests
-@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])  # type: ignore
+@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])
 def test_add(shape: Tuple[int, ...]) -> None:
-    tester = OperationTest(torch.add, lambda a, b: a + b, None)
+    tester = OperationTest(torch.add, lambda a, b: a + b)
     tester.run_test(shape)
 
 
-@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])  # type: ignore
+@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])
 def test_sub(shape: Tuple[int, ...]) -> None:
-    tester = OperationTest(torch.sub, lambda a, b: a - b, None)
+    tester = OperationTest(torch.sub, lambda a, b: a - b)
     tester.run_test(shape)
 
 
-@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])  # type: ignore
+@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])
 def test_mul(shape: Tuple[int, ...]) -> None:
-    tester = OperationTest(torch.mul, lambda a, b: a * b, None)
+    tester = OperationTest(torch.mul, lambda a, b: a * b)
     tester.run_test(shape)
 
 
-@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])  # type: ignore
+@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])
 def test_div(shape: Tuple[int, ...]) -> None:
-    tester = OperationTest(
-        torch.div, lambda a, b: a / b, (0.000000000000000000000000001, 10)
-    )
+    tester = OperationTest(torch.div, lambda a, b: a / b, (1e-10, 10))
     tester.run_test(shape)
 
 
 # compound test
-@pytest.mark.parametrize("shape", [(3, 3), (2, 4)])  # type: ignore
+@pytest.mark.parametrize("shape", [(3, 3), (2, 4)])
 def test_compound(shape: Tuple[int, ...]) -> None:
     a_torch, a = random_tensors(shape)
     b_torch, b = random_tensors(shape)
