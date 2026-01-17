@@ -6,6 +6,8 @@ import torch
 
 from common.autograd import Value
 
+N = 20  # size 20 for the array
+
 
 def random_tensors(
     shape: Tuple[int, ...], ranges: Tuple[float, float] = (-10.0, 10.0)
@@ -74,12 +76,45 @@ def test_div(shape: Tuple[int, ...]) -> None:
 # compound test
 @pytest.mark.parametrize("shape", [(3, 3), (2, 4)])
 def test_compound(shape: Tuple[int, ...]) -> None:
+    # torchTensors = []
+    # ourTensors = []
+    # for i in range(N): # init the tensors
+
     a_torch, a = random_tensors(shape)
     b_torch, b = random_tensors(shape)
 
     # example expression: a*b + a/b
-    res_torch = a_torch * b_torch + a_torch / b_torch
-    res_our = a * b + a / b
+    # res_torch = a_torch * b_torch + a_torch / b_torch
+    # res_our = a * b + a / b
+
+    for n in range(0, 10):
+        # pick random number from 1-9
+        i = np.random.randint(1, 10)
+        match i:
+            case 1:  # "+" operator
+                res_torch = a_torch + b_torch
+                res_our = a + b
+            case 2:  # "*" operator
+                res_torch = a_torch * b_torch
+                res_our = a * b
+            case 3:  # "-" operator
+                a_torch - b_torch
+                res_our = a - b
+            case 4:  # "/" operator
+                a_torch / b_torch
+                res_our = a / b
+            case 5:  # "exp" operator(uniary)
+                res_torch = a_torch.exp()
+                res_our = a.exp()
+            case 7:  # "-"   operator(uniary)
+                res_torch = a_torch * -1
+                res_our = a * -1
+            case 8:  # "@"   operator
+                res_torch = a_torch @ b_torch
+                res_our = a @ b
+            case 9:  # "**"  operator
+                res_torch = a_torch**3
+                res_our = a**3
 
     our_data = (
         res_our.data if isinstance(res_our.data, np.ndarray) else np.array(res_our.data)
