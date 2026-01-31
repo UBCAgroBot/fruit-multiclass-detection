@@ -114,9 +114,8 @@ def test_compound(shape: Tuple[int, ...]) -> None:
                 res_torch = t1 * -1
                 res_our = v1 * -1
             case 8:  # "@" operator
-                if t1.shape == t2.shape and len(t1.shape) == 2:
-                    res_torch = t1 @ t2
-                    res_our = v1 @ v2
+                res_torch = t1 @ t2
+                res_our = v1 @ v2
             case 9:  # "**" operator
                 res_torch = t1**3
                 res_our = v1**3
