@@ -7,7 +7,7 @@ authors = [
     {name = "rowan-cake",email = "cakerowan@gmail.com"},
     {name = "markus-chu",email = "markuschu06@gmail.com"},
     {name = "kevin-li",email = "kevin.shangkun.li@gmail.com"},
-    {name = "simo-becarevic",email = "becarevic.simo@gmail.com"}
+    {name = "simo-becarevic",email = "becarevic.simo@gmail.com"},
     {name = "ryan-vu",email = "ryanvu1131@gmail.com"}
 ]
 readme = "README.md"
