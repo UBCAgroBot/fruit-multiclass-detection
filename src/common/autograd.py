@@ -163,12 +163,14 @@ class Value:
         out._backward = _backward
 
         return out
-    
-    def sum(self, axis=None, keepdims=True) -> "Value":
+
+    def sum(
+        self, axis: int | tuple[int, ...] | None = None, keepdims: bool = True
+    ) -> "Value":
         # Sum over given axis
         out = Value(np.sum(self.data, axis=axis, keepdims=keepdims), (self,), "sum")
 
-        def _backward():
+        def _backward() -> None:
             # upstream gradient is broadcasted back to original shape
             grad_self = out.grad * np.ones_like(self.data)
             self.grad += grad_self
@@ -176,24 +178,28 @@ class Value:
         out._backward = _backward
         return out
 
-    def min(self, axis=None, keepdims=True) -> "Value":
+    def min(
+        self, axis: int | tuple[int, ...] | None = None, keepdims: bool = True
+    ) -> "Value":
         # Compute min over given axis
         out = Value(np.min(self.data, axis=axis, keepdims=keepdims), (self,), "min")
 
-        def _backward():
+        def _backward() -> None:
             # Which elements equal to min value
-            mask = (self.data == out.data)
+            mask = self.data == out.data
             grad_self = out.grad * mask
             self.grad += grad_self
 
         out._backward = _backward
         return out
-    
-    def mean(self, axis=None, keepdims=True) -> "Value":
+
+    def mean(
+        self, axis: int | tuple[int, ...] | None = None, keepdims: bool = True
+    ) -> "Value":
         # Mean over given axis
         out = Value(np.mean(self.data, axis=axis, keepdims=keepdims), (self,), "mean")
 
-        def _backward():
+        def _backward() -> None:
             # upstream gradient is broadcasted back to original shape
             grad_self = out.grad * np.ones_like(self.data)
             self.grad += grad_self
@@ -201,14 +207,51 @@ class Value:
         out._backward = _backward
         return out
 
-    def max(self, axis=None, keepdims=True) -> "Value":
+    def max(
+        self, axis: int | tuple[int, ...] | None = None, keepdims: bool = True
+    ) -> "Value":
         # Compute min over given axis
         out = Value(np.max(self.data, axis=axis, keepdims=keepdims), (self,), "max")
 
-        def _backward():
+        def _backward() -> None:
             # Which elements equal to max value
-            mask = (self.data == out.data)
+            mask = self.data == out.data
             grad_self = out.grad * mask
+            self.grad += grad_self
+
+        out._backward = _backward
+        return out
+
+    def reshape(self, shape: tuple[int, ...]) -> "Value":
+        # reshape the underlying data (view-like semantics in numpy)
+        out = Value(self.data.reshape(shape), (self,), "reshape")
+
+        def _backward() -> None:
+            # reshape upstream gradient back to original shape
+            self.grad += out.grad.reshape(self.data.shape)
+
+        out._backward = _backward
+        return out
+
+    def unsqueeze(self, axis: int) -> "Value":
+        # Forward pass: add a dimension of size 1 at the specified axis
+        out = Value(np.expand_dims(self.data, axis=axis), (self,), f"unsqueeze({axis})")
+
+        def _backward() -> None:
+            # Backward pass: reshape upstream gradient back to original shape
+            grad_self = out.grad.reshape(self.data.shape)
+            self.grad += grad_self
+
+        out._backward = _backward
+        return out
+
+    def squeeze(self, axis: int | tuple[int, ...] | None = None) -> "Value":
+        # Forward pass: remove dimensions of size 1
+        out = Value(np.squeeze(self.data, axis=axis), (self,), f"squeeze({axis})")
+
+        def _backward() -> None:
+            # Backward pass: reshape upstream gradient back to original shape
+            grad_self = out.grad.reshape(self.data.shape)
             self.grad += grad_self
 
         out._backward = _backward
@@ -254,7 +297,7 @@ class Value:
         return self * other**-1
 
     def __rtruediv__(self, other: "Value") -> "Value":  # other / self
-        return other * self**-1 
+        return other * self**-1
 
     def __repr__(self) -> "str":
         return f"Value(data={self.data}, grad={self.grad})"
