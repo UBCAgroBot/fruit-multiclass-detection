@@ -153,4 +153,34 @@ def test_compound() -> None:
         if isinstance(final_our.data, np.ndarray)
         else np.array(final_our.data)
     )
-    assert np.allclose(our_data, final_torch.numpy(), rtol=1e-5, atol=1e-8)
+    assert np.allclose(
+        our_data, res_torch.numpy(), rtol=1e-5, atol=1e-8
+    )  # nessacry when doing compound tests?
+
+
+# view operations tests
+@pytest.mark.parametrize("shape", [(3, 4), (2, 5)])
+def test_reshape(shape: Tuple[int, ...]) -> None:
+    # Test reshaping into a 1D array
+    target_shape = (int(np.prod(shape)),)
+    tester = OperationTest(
+        lambda a, _: torch.reshape(a, target_shape),
+        lambda a, _: a.reshape(target_shape),
+    )
+    tester.run_test(shape)
+
+
+@pytest.mark.parametrize("shape", [(3, 4), (2, 5)])
+def test_unsqueeze(shape: Tuple[int, ...]) -> None:
+    # Test adding a dimension at axis 0
+    tester = OperationTest(
+        lambda a, _: torch.unsqueeze(a, dim=0), lambda a, _: a.unsqueeze(axis=0)
+    )
+    tester.run_test(shape)
+
+
+@pytest.mark.parametrize("shape", [(1, 3, 4), (2, 1, 5)])
+def test_squeeze(shape: Tuple[int, ...]) -> None:
+    # Test removing dimensions of size 1
+    tester = OperationTest(lambda a, _: torch.squeeze(a), lambda a, _: a.squeeze())
+    tester.run_test(shape)
