@@ -233,6 +233,30 @@ class Value:
         out._backward = _backward
         return out
 
+    def unsqueeze(self, axis: int) -> "Value":
+        # Forward pass: add a dimension of size 1 at the specified axis
+        out = Value(np.expand_dims(self.data, axis=axis), (self,), f"unsqueeze({axis})")
+
+        def _backward() -> None:
+            # Backward pass: reshape upstream gradient back to original shape
+            grad_self = out.grad.reshape(self.data.shape)
+            self.grad += grad_self
+
+        out._backward = _backward
+        return out
+
+    def squeeze(self, axis: int | tuple[int, ...] | None = None) -> "Value":
+        # Forward pass: remove dimensions of size 1
+        out = Value(np.squeeze(self.data, axis=axis), (self,), f"squeeze({axis})")
+
+        def _backward() -> None:
+            # Backward pass: reshape upstream gradient back to original shape
+            grad_self = out.grad.reshape(self.data.shape)
+            self.grad += grad_self
+
+        out._backward = _backward
+        return out
+
     def backward(self) -> None:
         # topological order all of the children in the graph
         topo = []

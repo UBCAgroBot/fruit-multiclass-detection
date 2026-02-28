@@ -207,21 +207,15 @@ def test_reshape(shape: Shape) -> None:
 
 @pytest.mark.parametrize("shape", [(3, 4), (2, 5)])
 def test_unsqueeze(shape: Shape) -> None:
-    # Equivalent to unsqueeze at axis 0 for current Value API.
-    target_shape = (1, *shape)
+    # Test adding a dimension at axis 0
     tester = OperationTest(
-        lambda a, _: torch.unsqueeze(a, dim=0),
-        lambda a, _: a.reshape(target_shape),
+        lambda a, _: torch.unsqueeze(a, dim=0), lambda a, _: a.unsqueeze(axis=0)
     )
     tester.run_test(shape)
 
 
 @pytest.mark.parametrize("shape", [(1, 3, 4), (2, 1, 5)])
 def test_squeeze(shape: Shape) -> None:
-    # Equivalent to squeeze for these fixed shapes using reshape.
-    target_shape = tuple(dim for dim in shape if dim != 1)
-    tester = OperationTest(
-        lambda a, _: torch.squeeze(a),
-        lambda a, _: a.reshape(target_shape),
-    )
+    # Test removing dimensions of size 1
+    tester = OperationTest(lambda a, _: torch.squeeze(a), lambda a, _: a.squeeze())
     tester.run_test(shape)
