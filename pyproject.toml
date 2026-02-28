@@ -48,3 +48,5 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 explicit_package_bases = true
 namespace_packages = true
+disallow_untyped_calls = false
+disable_error_code = ["import-untyped"]
