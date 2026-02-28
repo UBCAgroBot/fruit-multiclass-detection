@@ -191,3 +191,37 @@ def test_add_is_commutative(shape: Shape) -> None:
     assert np.allclose(our_ab, torch_ab, rtol=RTOL, atol=ATOL)
     assert np.allclose(our_ba, torch_ba, rtol=RTOL, atol=ATOL)
     assert np.allclose(our_ab, our_ba, rtol=RTOL, atol=ATOL)
+
+
+# view operations tests
+@pytest.mark.parametrize("shape", [(3, 4), (2, 5)])
+def test_reshape(shape: Shape) -> None:
+    # Test reshaping into a 1D array
+    target_shape = (int(np.prod(shape)),)
+    tester = OperationTest(
+        lambda a, _: torch.reshape(a, target_shape),
+        lambda a, _: a.reshape(target_shape),
+    )
+    tester.run_test(shape)
+
+
+@pytest.mark.parametrize("shape", [(3, 4), (2, 5)])
+def test_unsqueeze(shape: Shape) -> None:
+    # Equivalent to unsqueeze at axis 0 for current Value API.
+    target_shape = (1, *shape)
+    tester = OperationTest(
+        lambda a, _: torch.unsqueeze(a, dim=0),
+        lambda a, _: a.reshape(target_shape),
+    )
+    tester.run_test(shape)
+
+
+@pytest.mark.parametrize("shape", [(1, 3, 4), (2, 1, 5)])
+def test_squeeze(shape: Shape) -> None:
+    # Equivalent to squeeze for these fixed shapes using reshape.
+    target_shape = tuple(dim for dim in shape if dim != 1)
+    tester = OperationTest(
+        lambda a, _: torch.squeeze(a),
+        lambda a, _: a.reshape(target_shape),
+    )
+    tester.run_test(shape)
