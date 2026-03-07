@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, Union
+from typing import Any, Generator
 
 from common.autograd import Value
 
@@ -32,10 +32,12 @@ class Module(ABC):
     .. note::
         As per the example above, an ``__init__()`` call to the parent class
         must be made before assignment on the child."""
+
     def __init__(self) -> None:
-        self.params: dict[str, Value | "Module"] = {} # real param store: name -> Value or Module
-  
-        
+        self.params: dict[
+            str, Value | "Module"
+        ] = {}  # real param store: name -> Value or Module
+
     @abstractmethod
     def forward(self, *args: Any, **kwargs: Any) -> Value:
         """Compute the forward pass for this module."""
@@ -66,7 +68,7 @@ class Module(ABC):
         if isinstance(value, (Value, Module)):
             self.params[key] = value
 
-    def parameters(self) -> Generator[Value,None,None]:
+    def parameters(self) -> Generator[Value, None, None]:
         # recursively collects parameters and yields them (use a Generator)
         for key, param in self.params.items():
             if isinstance(param, Module):
