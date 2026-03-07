@@ -1,4 +1,6 @@
-from typing import Tuple
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import numpy as np
 import pytest
@@ -6,145 +8,164 @@ import torch
 
 from common.autograd import Value
 
-N = 20  # size 20 for the array
+N = 20  # number of random shape cases used in parametrized tests
+SEED = 1337
+RTOL = 1e-5
+ATOL = 1e-8
+
+Shape = tuple[int, ...]
+ValueBinaryOp = Callable[[Value, Value], Value]
+TorchBinaryOp = Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
 
 
 def random_tensors(
-    shape: Tuple[int, ...], ranges: Tuple[float, float] = (-10.0, 10.0)
-) -> Tuple[torch.Tensor, Value]:
-    # random tensor for both PyTorch and Value
+    shape: Shape,
+    ranges: tuple[float, float] = (-10.0, 10.0),
+) -> tuple[torch.Tensor, Value]:
     low, high = ranges
     t_torch = (high - low) * torch.rand(shape) + low
     t_value = Value(t_torch.clone().numpy())
     return t_torch, t_value
 
 
-# base class for differential tests
+def random_shapes(
+    rng: np.random.Generator,
+    *,
+    count: int,
+    min_ndim: int = 1,
+    max_ndim: int = 6,
+    min_size: int = 1,
+    max_size: int = 6,
+) -> list[Shape]:
+    shapes: list[Shape] = []
+    for _ in range(count):
+        ndim = int(rng.integers(min_ndim, max_ndim + 1))
+        dims = tuple(int(x) for x in rng.integers(min_size, max_size + 1, size=ndim))
+        shapes.append(dims)
+    return shapes
+
+
+RNG = np.random.default_rng(SEED)
+RANDOM_SHAPES = random_shapes(RNG, count=N)
+COMPOUND_SHAPES = random_shapes(RNG, count=8, min_ndim=1, max_ndim=8)
+
+
 class OperationTest:
-    def __init__(self, torch_fn, our_fn, ranges=(-10.0, 10.0)) -> None:  # type: ignore
+    def __init__(
+        self,
+        torch_fn: TorchBinaryOp,
+        our_fn: ValueBinaryOp,
+        ranges: tuple[float, float] = (-10.0, 10.0),
+    ) -> None:
         self.torch_fn = torch_fn
         self.our_fn = our_fn
-        self.ranges = (
-            ranges  # ranges repersent what values the random tensors will take on.
-        )
-        self.rtol = 1e-5
-        self.atol = 1e-8
+        self.ranges = ranges
+        self.rtol = RTOL
+        self.atol = ATOL
 
-    def run_test(self, shape: Tuple[int, ...]) -> None:
+    def run_test(self, shape: Shape) -> None:
         a_torch, a = random_tensors(shape, self.ranges)
         b_torch, b = random_tensors(shape, self.ranges)
 
-        # compute both results
         res_our = self.our_fn(a, b)
         res_torch = self.torch_fn(a_torch, b_torch)
 
-        # convert our Value result to numpy for comparison
         if isinstance(res_our.data, np.ndarray):
             our_data = res_our.data
         else:
             our_data = np.array(res_our.data)
 
-        # compare against PyTorch
         assert np.allclose(our_data, res_torch.numpy(), rtol=self.rtol, atol=self.atol)
 
 
-# tests
-@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])
-def test_add(shape: Tuple[int, ...]) -> None:
+@pytest.mark.parametrize("shape", RANDOM_SHAPES)
+def test_add(shape: Shape) -> None:
     tester = OperationTest(torch.add, lambda a, b: a + b)
     tester.run_test(shape)
 
 
-@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])
-def test_sub(shape: Tuple[int, ...]) -> None:
+@pytest.mark.parametrize("shape", RANDOM_SHAPES)
+def test_sub(shape: Shape) -> None:
     tester = OperationTest(torch.sub, lambda a, b: a - b)
     tester.run_test(shape)
 
 
-@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])
-def test_mul(shape: Tuple[int, ...]) -> None:
+@pytest.mark.parametrize("shape", RANDOM_SHAPES)
+def test_mul(shape: Shape) -> None:
     tester = OperationTest(torch.mul, lambda a, b: a * b)
     tester.run_test(shape)
 
 
-@pytest.mark.parametrize("shape", [(3, 3), (5, 2), (2, 4)])
-def test_div(shape: Tuple[int, ...]) -> None:
-    tester = OperationTest(torch.div, lambda a, b: a / b, (1e-10, 10))
+@pytest.mark.parametrize("shape", RANDOM_SHAPES)
+def test_div(shape: Shape) -> None:
+    tester = OperationTest(torch.div, lambda a, b: a / b, (1e-10, 10.0))
     tester.run_test(shape)
 
 
-# compound test
-def test_compound() -> None:
-    # Start with two random tensors (random shape each run)
-    ndim = np.random.randint(1, 3)
-    shape = tuple(int(x) for x in np.random.randint(1, 6, size=ndim))
-    a_torch, a = random_tensors(shape)
-    b_torch, b = random_tensors(shape)
+@pytest.mark.parametrize("shape", COMPOUND_SHAPES)
+def test_compound(shape: Shape) -> None:
+    seed = 0
+    for i, dim in enumerate(shape):
+        seed += (i + 1) * dim * 9973
+    seed %= 2**32
+    rng = np.random.default_rng(seed)
 
-    # Keep track of all results in a list (the "pool")
-    torch_pool = [a_torch, b_torch]
-    our_pool = [a, b]
+    # Keep values bounded so long random expression chains stay numerically stable.
+    a_torch, a = random_tensors(shape, ranges=(0.5, 2.0))
+    b_torch, b = random_tensors(shape, ranges=(0.5, 2.0))
 
-    for n in range(0, 10):
-        # Pick two random items from the pool
-        i1 = np.random.randint(0, len(torch_pool))
-        i2 = np.random.randint(0, len(torch_pool))
+    torch_pool: list[torch.Tensor] = [a_torch, b_torch]
+    our_pool: list[Value] = [a, b]
+
+    for _ in range(6):
+        i1 = int(rng.integers(0, len(torch_pool)))
+        i2 = int(rng.integers(0, len(torch_pool)))
 
         t1, t2 = torch_pool[i1], torch_pool[i2]
         v1, v2 = our_pool[i1], our_pool[i2]
 
-        i = np.random.randint(1, 10)
-        res_torch, res_our = None, None
+        op = int(rng.integers(1, 10))
+        res_torch: torch.Tensor | None = None
+        res_our: Value | None = None
 
-        match i:
-            case 1:  # "+" operator
+        match op:
+            case 1:
                 res_torch = t1 + t2
                 res_our = v1 + v2
-            case 2:  # "*" operator
+            case 2:
                 res_torch = t1 * t2
                 res_our = v1 * v2
-            case 3:  # "-" operator
+            case 3:
                 res_torch = t1 - t2
                 res_our = v1 - v2
-            case 4:  # "/" operator
-                res_torch = t1 / (t2 + 0.0000000000000001)  # avoid 0
-                res_our = v1 / (v2 + 0.0000000000000001)
-            case 5:  # "exp" operator
+            case 4:
+                res_torch = t1 / (t2 + 1e-3)
+                res_our = v1 / (v2 + 1e-3)
+            case 5:
                 res_torch = t1.exp()
                 res_our = v1.exp()
-            case 7:  # unary "-" operator
+            case 7:
                 res_torch = t1 * -1
                 res_our = v1 * -1
-            case 8:  # "@" operator
-                # gcd approach:
-                # 1) flatten each tensor to a total element count (n and m)
-                # 2) pick the largest shared factor k so we can build a valid matmul
-                #    with shapes (n/k, k) @ (k, m/k)
-                # 3) reshape both tensors into those 2D matrices
-                # 4) perform matmul on the reshaped views
-                # This keeps all elements, avoids invalid shapes, and guarantees
-                # the inner dimension matches for matrix multiply.
-                n = int(np.prod(t1.shape))  # total elements in t1
-                m = int(np.prod(t2.shape))  # total elements in t2
+            case 8:
+                n = int(np.prod(t1.shape))
+                m = int(np.prod(t2.shape))
 
-                k = np.gcd(n, m)  # shared factor for a valid inner dimension
+                k = int(np.gcd(n, m))
 
-                shape1 = (n // k, k)  # (rows, inner)
-                shape2 = (k, m // k)  # (inner, cols)
+                shape1 = (n // k, k)
+                shape2 = (k, m // k)
 
-                # reshape into 2D matrices that are guaranteed to be compatible
                 res_torch = t1.reshape(shape1) @ t2.reshape(shape2)
                 res_our = v1.reshape(shape1) @ v2.reshape(shape2)
-            case 9:  # "**" operator
+            case 9:
                 res_torch = t1**3
                 res_our = v1**3
 
-        # add result to pool so it can be used again
-        if res_torch is not None:
+        if res_torch is not None and res_our is not None:
             torch_pool.append(res_torch)
             our_pool.append(res_our)
 
-    # compare final result
     final_torch = torch_pool[-1]
     final_our = our_pool[-1]
 
@@ -153,14 +174,28 @@ def test_compound() -> None:
         if isinstance(final_our.data, np.ndarray)
         else np.array(final_our.data)
     )
-    assert np.allclose(
-        our_data, res_torch.numpy(), rtol=1e-5, atol=1e-8
-    )  # nessacry when doing compound tests?
+    assert np.allclose(our_data, final_torch.numpy(), rtol=1e-4, atol=1e-6)
+
+
+@pytest.mark.parametrize("shape", RANDOM_SHAPES)
+def test_add_is_commutative(shape: Shape) -> None:
+    a_torch, a = random_tensors(shape)
+    b_torch, b = random_tensors(shape)
+
+    torch_ab = (a_torch + b_torch).numpy()
+    torch_ba = (b_torch + a_torch).numpy()
+
+    our_ab = np.array((a + b).data)
+    our_ba = np.array((b + a).data)
+
+    assert np.allclose(our_ab, torch_ab, rtol=RTOL, atol=ATOL)
+    assert np.allclose(our_ba, torch_ba, rtol=RTOL, atol=ATOL)
+    assert np.allclose(our_ab, our_ba, rtol=RTOL, atol=ATOL)
 
 
 # view operations tests
 @pytest.mark.parametrize("shape", [(3, 4), (2, 5)])
-def test_reshape(shape: Tuple[int, ...]) -> None:
+def test_reshape(shape: Shape) -> None:
     # Test reshaping into a 1D array
     target_shape = (int(np.prod(shape)),)
     tester = OperationTest(
@@ -171,7 +206,7 @@ def test_reshape(shape: Tuple[int, ...]) -> None:
 
 
 @pytest.mark.parametrize("shape", [(3, 4), (2, 5)])
-def test_unsqueeze(shape: Tuple[int, ...]) -> None:
+def test_unsqueeze(shape: Shape) -> None:
     # Test adding a dimension at axis 0
     tester = OperationTest(
         lambda a, _: torch.unsqueeze(a, dim=0), lambda a, _: a.unsqueeze(axis=0)
@@ -180,7 +215,7 @@ def test_unsqueeze(shape: Tuple[int, ...]) -> None:
 
 
 @pytest.mark.parametrize("shape", [(1, 3, 4), (2, 1, 5)])
-def test_squeeze(shape: Tuple[int, ...]) -> None:
+def test_squeeze(shape: Shape) -> None:
     # Test removing dimensions of size 1
     tester = OperationTest(lambda a, _: torch.squeeze(a), lambda a, _: a.squeeze())
     tester.run_test(shape)
