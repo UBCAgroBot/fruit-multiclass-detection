@@ -5,6 +5,12 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Enable tmate debugging session'
+        required: false
+        default: 'false'
 
 jobs:
   greet:
@@ -34,6 +40,12 @@ jobs:
           poetry env use python
           poetry lock
           poetry install
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        with:
+          limit-access-to-actor: true
 
       - name: Run Python formatting
         run: poetry run black . --check
