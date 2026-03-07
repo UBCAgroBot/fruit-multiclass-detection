@@ -34,9 +34,9 @@ class Module(ABC):
         must be made before assignment on the child."""
 
     def __init__(self) -> None:
-        self.params: dict[str, Value | "Module"] = (
-            {}
-        )  # real param store: name -> Value or Module
+        self.params: dict[
+            str, Value | "Module"
+        ] = {}  # real param store: name -> Value or Module
 
     @abstractmethod
     def forward(self, *args: Any, **kwargs: Any) -> Value:

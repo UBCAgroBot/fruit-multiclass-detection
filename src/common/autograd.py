@@ -155,7 +155,7 @@ class Value:
         return out
 
     def relu(self) -> "Value":
-        out = Value(0 if self.data.any() < 0 else self.data, (self,), "ReLU")
+        out = Value(np.where(self.data < 0, 0, self.data), (self,), "ReLU")
 
         def _backward() -> None:
             self.grad += (out.data > 0) * out.grad
