@@ -155,7 +155,7 @@ class Value:
         return out
 
     def log(self) -> "Value":
-        # We add a tiny epsilon to prevent log(0), which would instantly 
+        # We add a tiny epsilon to prevent log(0), which would instantly
         # blow up your network with NaN (Not a Number) values.
         epsilon = 1e-8
         out = Value(np.log(self.data + epsilon), (self,), "log")
@@ -163,12 +163,12 @@ class Value:
         def _backward() -> None:
             # The calculus derivative of ln(x) is 1/x
             grad_self = out.grad * (1.0 / (self.data + epsilon))
-            
+
             # Using your existing sum_to_shape to handle any broadcasting
             self.grad += self.sum_to_shape(grad_self, self.data.shape)
 
         out._backward = _backward
-        
+
         return out
 
     def relu(self) -> "Value":
