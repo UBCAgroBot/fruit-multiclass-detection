@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generator
+from collections.abc import Iterable
+from typing import Any
 
 from common.autograd import Value
 
@@ -34,17 +35,17 @@ class Module(ABC):
         must be made before assignment on the child."""
 
     def __init__(self) -> None:
-        self.params: dict[
-            str, Value | "Module"
-        ] = {}  # real param store: name -> Value or Module
+        self.params: dict[str, Value | "Module"] = (
+            {}
+        )  # real param store: name -> Value or Module
 
     @abstractmethod
-    def forward(self, *args: Any, **kwargs: Any) -> Value:
+    def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Compute the forward pass for this module."""
 
         raise NotImplementedError
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Value:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         # will call self.forward!
         return self.forward(*args, **kwargs)
 
@@ -67,8 +68,10 @@ class Module(ABC):
         # registry in sync with the current state of the object.
         if isinstance(value, (Value, Module)):
             self.params[key] = value
+        elif key in self.params:
+            del self.params[key]
 
-    def parameters(self) -> Generator[Value, None, None]:
+    def parameters(self) -> Iterable[Value]:
         # recursively collects parameters and yields them (use a Generator)
         for key, param in self.params.items():
             if isinstance(param, Module):
