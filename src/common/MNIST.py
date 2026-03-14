@@ -4,6 +4,7 @@
 import struct
 from array import array
 from os.path import join
+from typing import Any, List, Tuple, Union
 
 import numpy as np  # linear algebra
 
@@ -16,34 +17,33 @@ from common.autograd import Value
 class MnistDataloader(object):
     def __init__(
         self,
-        training_images_filepath,
-        training_labels_filepath,
-        test_images_filepath,
-        test_labels_filepath,
-    ):
+        training_images_filepath: str,
+        training_labels_filepath: str,
+        test_images_filepath: str,
+        test_labels_filepath: str,
+    ) -> None:
         self.training_images_filepath = training_images_filepath
         self.training_labels_filepath = training_labels_filepath
         self.test_images_filepath = test_images_filepath
         self.test_labels_filepath = test_labels_filepath
 
-    def read_images_labels(self, images_filepath, labels_filepath):
-        labels = []
+    def read_images_labels(
+        self, images_filepath: str, labels_filepath: str
+    ) -> Tuple[List[Any], Any]:
+        labels: Union[List[int], "array[int]"] = []
         with open(labels_filepath, "rb") as file:
             magic, size = struct.unpack(">II", file.read(8))
             if magic != 2049:
-                raise ValueError(
-                    "Magic number mismatch, expected 2049, got {}".format(magic)
-                )
+                raise ValueError(f"Magic number mismatch, expected 2049, got {magic}")
             labels = array("B", file.read())
 
         with open(images_filepath, "rb") as file:
             magic, size, rows, cols = struct.unpack(">IIII", file.read(16))
             if magic != 2051:
-                raise ValueError(
-                    "Magic number mismatch, expected 2051, got {}".format(magic)
-                )
+                raise ValueError(f"Magic number mismatch, expected 2051, got {magic}")
             image_data = array("B", file.read())
-        images = []
+
+        images: List[Any] = []
         for i in range(size):
             images.append([0] * rows * cols)
         for i in range(size):
@@ -53,7 +53,7 @@ class MnistDataloader(object):
 
         return images, labels
 
-    def load_data(self):
+    def load_data(self) -> Tuple[Tuple[List[Any], Any], Tuple[List[Any], Any]]:
         x_train, y_train = self.read_images_labels(
             self.training_images_filepath, self.training_labels_filepath
         )
@@ -93,7 +93,6 @@ mnist_dataloader = MnistDataloader(
 
 class Linear:
     def __init__(self, nin: int, nout: int):
-        # He Initialization for better gradient flow
         std = np.sqrt(2.0 / nin)
         self.W = Value(np.random.randn(nin, nout) * std)
         self.b = Value(np.zeros(nout))
@@ -101,13 +100,12 @@ class Linear:
     def __call__(self, x: Value) -> Value:
         return (x @ self.W) + self.b
 
-    def parameters(self) -> list[Value]:
+    def parameters(self) -> List[Value]:
         return [self.W, self.b]
 
 
 class MnistNetwork:
-    def __init__(self):
-        # The 28**2 -> 100 -> 100 -> 50 -> 10 Architecture
+    def __init__(self) -> None:
         self.l1 = Linear(784, 100)
         self.l2 = Linear(100, 100)
         self.l3 = Linear(100, 50)
@@ -117,10 +115,9 @@ class MnistNetwork:
         x = self.l1(x).relu()
         x = self.l2(x).relu()
         x = self.l3(x).relu()
-        # No ReLU on the final layer, as these are raw logits!
         return self.l4(x)
 
-    def parameters(self) -> list[Value]:
+    def parameters(self) -> List[Value]:
         return (
             self.l1.parameters()
             + self.l2.parameters()
@@ -130,18 +127,14 @@ class MnistNetwork:
 
 
 def cross_entropy_loss(logits: Value, targets: np.ndarray) -> Value:
-    # Stable Softmax & Cross Entropy
     max_logits = logits.max(axis=1, keepdims=True)
     logits_safe = logits - max_logits
-
     counts = logits_safe.exp()
     counts_sum = counts.sum(axis=1, keepdims=True)
     probs = counts / counts_sum
-
     log_probs = probs.log()
     targets_val = Value(targets)
-
-    loss = -(targets_val * log_probs).sum() / logits.data.shape[0]
+    loss: Value = -(targets_val * log_probs).sum() / logits.data.shape[0]
     return loss
 
 
