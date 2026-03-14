@@ -5,7 +5,7 @@ from common.autograd import Value
 from common.Module import Module
 
 
-class Neuron(Module):  # type: ignore[misc]
+class Neuron(Module):
     def __init__(self, nin: int, nonlin: bool = True) -> None:
         super().__init__()
         self.w = [Value(random.uniform(-1, 1)) for _ in range(nin)]
@@ -23,7 +23,7 @@ class Neuron(Module):  # type: ignore[misc]
         return f"{'ReLU' if self.nonlin else 'Linear'}Neuron({len(self.w)})"
 
 
-class Layer(Module):  # type: ignore[misc]
+class Layer(Module):
     def __init__(self, nin: int, nout: int, **kwargs: Any) -> None:
         super().__init__()
         self.neurons = [Neuron(nin, **kwargs) for _ in range(nout)]
@@ -39,7 +39,7 @@ class Layer(Module):  # type: ignore[misc]
         return f"Layer of [{', '.join(str(n) for n in self.neurons)}]"
 
 
-class MLP(Module):  # type: ignore[misc]
+class MLP(Module):
     def __init__(self, nin: int, nouts: list[int]) -> None:
         super().__init__()
         sz = [nin] + nouts

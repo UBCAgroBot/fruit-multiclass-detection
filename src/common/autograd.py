@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 
 try:
     import cupy as np
@@ -6,13 +6,15 @@ except ImportError:
     print("CUDA not available, defaulting to numpy")
     import numpy as np
 
+Scalar = float | int
+
 
 class Value:
     """stores value's and its gradient's"""
 
     def __init__(
         self,
-        data: float | np.ndarray,
+        data: Scalar | np.ndarray,
         _children: tuple["Value", ...] = (),
         _op: str = "",
     ) -> None:
@@ -65,7 +67,7 @@ class Value:
                 result = result.sum(axis=i, keepdims=True)
         return result
 
-    def __add__(self, other: "Value") -> "Value":
+    def __add__(self, other: Value | Scalar) -> Value:
         other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data + other.data, (self, other), "+")
 
@@ -86,11 +88,7 @@ class Value:
 
         return out
 
-    def __mul__(
-        self, other: Union["Value", int]
-    ) -> (
-        "Value"
-    ):  # some weird python black thing, so we made it use the union from typing instead(cuz it thinks its a string)
+    def __mul__(self, other: Value | Scalar) -> Value:
         other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data * other.data, (self, other), "*")
 
@@ -298,22 +296,22 @@ class Value:
     def __neg__(self) -> "Value":  # -self
         return self * -1
 
-    def __radd__(self, other: "Value") -> "Value":  # other + self
+    def __radd__(self, other: Value | Scalar) -> Value:  # other + self
         return self + other
 
-    def __sub__(self, other: "Value") -> "Value":  # self - other
+    def __sub__(self, other: Value | Scalar) -> Value:  # self - other
         return self + (-other)
 
-    def __rsub__(self, other: "Value") -> "Value":  # other - self
+    def __rsub__(self, other: Value | Scalar) -> Value:  # other - self
         return other + (-self)
 
-    def __rmul__(self, other: "Value") -> "Value":  # other * self
+    def __rmul__(self, other: Value | Scalar) -> Value:  # other * self
         return self * other
 
-    def __truediv__(self, other: "Value") -> "Value":  # self / other
+    def __truediv__(self, other: Value | Scalar) -> Value:  # self / other
         return self * other**-1
 
-    def __rtruediv__(self, other: "Value") -> "Value":  # other / self
+    def __rtruediv__(self, other: Value | Scalar) -> Value:  # other / self
         return other * self**-1
 
     def __repr__(self) -> "str":
