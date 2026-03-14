@@ -1,52 +1,64 @@
 #
 # This is a sample Notebook to demonstrate how to read "MNIST Dataset"
 #
-import numpy as np # linear algebra
+import numpy as np  # linear algebra
 import struct
 from array import array
-from os.path  import join
+from os.path import join
 from common.autograd import Value
+
 
 #
 # MNIST Data Loader Class
 #
 class MnistDataloader(object):
-    def __init__(self, training_images_filepath,training_labels_filepath,
-                 test_images_filepath, test_labels_filepath):
+    def __init__(
+        self,
+        training_images_filepath,
+        training_labels_filepath,
+        test_images_filepath,
+        test_labels_filepath,
+    ):
         self.training_images_filepath = training_images_filepath
         self.training_labels_filepath = training_labels_filepath
         self.test_images_filepath = test_images_filepath
         self.test_labels_filepath = test_labels_filepath
-    
-    def read_images_labels(self, images_filepath, labels_filepath):        
+
+    def read_images_labels(self, images_filepath, labels_filepath):
         labels = []
-        with open(labels_filepath, 'rb') as file:
+        with open(labels_filepath, "rb") as file:
             magic, size = struct.unpack(">II", file.read(8))
             if magic != 2049:
-                raise ValueError('Magic number mismatch, expected 2049, got {}'.format(magic))
-            labels = array("B", file.read())        
-        
-        with open(images_filepath, 'rb') as file:
+                raise ValueError(
+                    "Magic number mismatch, expected 2049, got {}".format(magic)
+                )
+            labels = array("B", file.read())
+
+        with open(images_filepath, "rb") as file:
             magic, size, rows, cols = struct.unpack(">IIII", file.read(16))
             if magic != 2051:
-                raise ValueError('Magic number mismatch, expected 2051, got {}'.format(magic))
-            image_data = array("B", file.read())        
+                raise ValueError(
+                    "Magic number mismatch, expected 2051, got {}".format(magic)
+                )
+            image_data = array("B", file.read())
         images = []
         for i in range(size):
             images.append([0] * rows * cols)
         for i in range(size):
-            img = np.array(image_data[i * rows * cols:(i + 1) * rows * cols])
+            img = np.array(image_data[i * rows * cols : (i + 1) * rows * cols])
             img = img.reshape(28, 28)
-            images[i][:] = img            
-        
-        return images, labels
-            
-    def load_data(self):
-        x_train, y_train = self.read_images_labels(self.training_images_filepath, self.training_labels_filepath)
-        x_test, y_test = self.read_images_labels(self.test_images_filepath, self.test_labels_filepath)
-        return (x_train, y_train),(x_test, y_test)        
-    
+            images[i][:] = img
 
+        return images, labels
+
+    def load_data(self):
+        x_train, y_train = self.read_images_labels(
+            self.training_images_filepath, self.training_labels_filepath
+        )
+        x_test, y_test = self.read_images_labels(
+            self.test_images_filepath, self.test_labels_filepath
+        )
+        return (x_train, y_train), (x_test, y_test)
 
 
 # Verify Reading Dataset via MnistDataloader class
@@ -56,20 +68,26 @@ class MnistDataloader(object):
 #
 # Set file paths based on added MNIST Datasets
 #
-input_path = 'src/common/DataMNIST/raw'
-training_images_filepath = join(input_path, 'train-images-idx3-ubyte')
-training_labels_filepath = join(input_path, 'train-labels-idx1-ubyte')
-test_images_filepath = join(input_path, 't10k-images-idx3-ubyte')
-test_labels_filepath = join(input_path, 't10k-labels-idx1-ubyte')
+input_path = "src/common/DataMNIST/raw"
+training_images_filepath = join(input_path, "train-images-idx3-ubyte")
+training_labels_filepath = join(input_path, "train-labels-idx1-ubyte")
+test_images_filepath = join(input_path, "t10k-images-idx3-ubyte")
+test_labels_filepath = join(input_path, "t10k-labels-idx1-ubyte")
 
 
 #
 # Load MINST dataset
 #
-mnist_dataloader = MnistDataloader(training_images_filepath, training_labels_filepath, test_images_filepath, test_labels_filepath)
+mnist_dataloader = MnistDataloader(
+    training_images_filepath,
+    training_labels_filepath,
+    test_images_filepath,
+    test_labels_filepath,
+)
 (x_train, y_train), (x_test, y_test) = mnist_dataloader.load_data()
 
-### MNIST CODE 
+### MNIST CODE
+
 
 class Linear:
     def __init__(self, nin: int, nout: int):
@@ -83,6 +101,7 @@ class Linear:
 
     def parameters(self) -> list[Value]:
         return [self.W, self.b]
+
 
 class MnistNetwork:
     def __init__(self):
@@ -100,34 +119,46 @@ class MnistNetwork:
         return self.l4(x)
 
     def parameters(self) -> list[Value]:
-        return self.l1.parameters() + self.l2.parameters() + self.l3.parameters() + self.l4.parameters()
+        return (
+            self.l1.parameters()
+            + self.l2.parameters()
+            + self.l3.parameters()
+            + self.l4.parameters()
+        )
+
 
 def cross_entropy_loss(logits: Value, targets: np.ndarray) -> Value:
     # Stable Softmax & Cross Entropy
     max_logits = logits.max(axis=1, keepdims=True)
     logits_safe = logits - max_logits
-    
+
     counts = logits_safe.exp()
     counts_sum = counts.sum(axis=1, keepdims=True)
     probs = counts / counts_sum
-    
+
     log_probs = probs.log()
     targets_val = Value(targets)
-    
+
     loss = -(targets_val * log_probs).sum() / logits.data.shape[0]
     return loss
+
 
 if __name__ == "__main__":
     # 1. Load the data using Rowan's class
     print("Loading Data...")
-    mnist_dataloader = MnistDataloader(training_images_filepath, training_labels_filepath, test_images_filepath, test_labels_filepath)
+    mnist_dataloader = MnistDataloader(
+        training_images_filepath,
+        training_labels_filepath,
+        test_images_filepath,
+        test_labels_filepath,
+    )
     (x_train, y_train), (x_test, y_test) = mnist_dataloader.load_data()
 
     # 2. Format the training data
     print("Formatting Data...")
     # Flatten 28x28 into 784 and normalize to 0.0 - 1.0
     X_train = np.array(x_train).reshape(-1, 784) / 255.0
-    
+
     # One-hot encode the labels using NumPy
     num_classes = 10
     y_train_arr = np.array(y_train)
@@ -153,8 +184,8 @@ if __name__ == "__main__":
 
         for i in range(0, num_samples, batch_size):
             # Get mini-batch
-            X_batch = X_shuffled[i:i+batch_size]
-            Y_batch = Y_shuffled[i:i+batch_size]
+            X_batch = X_shuffled[i : i + batch_size]
+            Y_batch = Y_shuffled[i : i + batch_size]
 
             # Forward Pass
             x_val = Value(X_batch)
@@ -164,13 +195,13 @@ if __name__ == "__main__":
             # Zero Gradients
             for p in model.parameters():
                 p.grad = np.zeros_like(p.data)
-            
+
             # Backward Pass
             loss.backward()
 
             # SGD Update Step
             for p in model.parameters():
-                p.grad = np.clip(p.grad, -1.0, 1.0) # Gradient clipping
+                p.grad = np.clip(p.grad, -1.0, 1.0)  # Gradient clipping
                 p.data -= lr * p.grad
 
             epoch_loss += float(loss.data.item())
@@ -191,21 +222,18 @@ if __name__ == "__main__":
         # Run through the test set in batches (keeps memory usage low)
         for i in range(0, total_test_samples, batch_size):
             # Get mini-batch
-            X_batch = X_test[i:i+batch_size]
-            y_batch = y_test_arr[i:i+batch_size]
-            
+            X_batch = X_test[i : i + batch_size]
+            y_batch = y_test_arr[i : i + batch_size]
+
             # Forward pass (no need to calculate gradients here!)
             x_val = Value(X_batch)
             logits = model(x_val)
-            
+
             # The prediction is the index of the highest logit
             predictions = np.argmax(logits.data, axis=1)
-            
+
             # Count how many predictions match the true label
             correct_predictions += np.sum(predictions == y_batch)
 
         accuracy = (correct_predictions / total_test_samples) * 100
         print(f"Final Test Accuracy: {accuracy:.2f}%")
-
-        
-        
