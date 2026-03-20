@@ -142,7 +142,6 @@ if __name__ == "__main__":
     import json
 
     import matplotlib.pyplot as plt
-    import numpy as np
     import seaborn as sns
     from sklearn.metrics import confusion_matrix
 
@@ -290,7 +289,7 @@ if __name__ == "__main__":
 
     # --- SAVE METRICS TO FILE ---
     print("Saving Metrics to JSON...")
-    metrics = {"final_accuracy": accuracy, "loss_per_epoch": history_loss}
+    metrics = {"final_accuracy": float(accuracy), "loss_per_epoch": history_loss}
 
     with open("mnist_training_metrics.json", "w") as f:
         json.dump(metrics, f, indent=4)
