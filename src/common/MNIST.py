@@ -140,10 +140,11 @@ def cross_entropy_loss(logits: Value, targets: np.ndarray) -> Value:
 
 if __name__ == "__main__":
     import json
+
     import matplotlib.pyplot as plt
+    import numpy as np
     import seaborn as sns
     from sklearn.metrics import confusion_matrix
-    import numpy as np
 
     # 1. Load the data using Rowan's class
     print("Loading Data...")
@@ -170,12 +171,12 @@ if __name__ == "__main__":
     fig, axes = plt.subplots(2, 5, figsize=(10, 4))
     for i, ax in enumerate(axes.flatten()):
         img = X_train[i].reshape(28, 28)
-        ax.imshow(img, cmap='gray')
+        ax.imshow(img, cmap="gray")
         ax.set_title(f"Label: {y_train_arr[i]}")
-        ax.axis('off')
+        ax.axis("off")
     plt.tight_layout()
     plt.savefig("mnist_raw_data_samples.png")
-    plt.close() # Free up memory
+    plt.close()  # Free up memory
 
     # 3. Initialize Model & Hyperparameters
     model = MnistNetwork()
@@ -185,7 +186,7 @@ if __name__ == "__main__":
     num_samples = X_train.shape[0]
 
     print("Starting Training...")
-    
+
     # --- SETUP FOR VISUALIZATION 3: Training Curve ---
     history_loss = []
 
@@ -226,14 +227,14 @@ if __name__ == "__main__":
 
         avg_loss = epoch_loss / batches
         print(f"Epoch {epoch + 1}/{epochs} | Average Loss: {avg_loss:.4f}")
-        
+
         # Track loss for plotting
         history_loss.append(avg_loss)
 
     # --- VISUALIZATION 3: Save Training Curve ---
     print("Saving Training Curve Visualization...")
     plt.figure(figsize=(8, 5))
-    plt.plot(range(1, epochs + 1), history_loss, marker='o', linestyle='-', color='b')
+    plt.plot(range(1, epochs + 1), history_loss, marker="o", linestyle="-", color="b")
     plt.title("Training Loss Over Epochs")
     plt.xlabel("Epoch")
     plt.ylabel("Cross Entropy Loss")
@@ -280,7 +281,7 @@ if __name__ == "__main__":
     print("Saving Confusion Matrix...")
     cm = confusion_matrix(y_test_arr, all_predictions)
     plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
     plt.title("Confusion Matrix on Test Set")
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
@@ -289,12 +290,9 @@ if __name__ == "__main__":
 
     # --- SAVE METRICS TO FILE ---
     print("Saving Metrics to JSON...")
-    metrics = {
-        "final_accuracy": accuracy,
-        "loss_per_epoch": history_loss
-    }
-    
+    metrics = {"final_accuracy": accuracy, "loss_per_epoch": history_loss}
+
     with open("mnist_training_metrics.json", "w") as f:
         json.dump(metrics, f, indent=4)
-        
+
     print("\nDone! Check your folder for the new .png and .json files.")
