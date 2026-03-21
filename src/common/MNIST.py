@@ -139,6 +139,12 @@ def cross_entropy_loss(logits: Value, targets: np.ndarray) -> Value:
 
 
 if __name__ == "__main__":
+    import json
+
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    from sklearn.metrics import confusion_matrix
+
     # 1. Load the data using Rowan's class
     print("Loading Data...")
     mnist_dataloader = MnistDataloader(
@@ -159,6 +165,18 @@ if __name__ == "__main__":
     y_train_arr = np.array(y_train)
     Y_train_one_hot = np.eye(num_classes)[y_train_arr]
 
+    # --- VISUALIZATION 1: Raw Data ---
+    print("Saving Raw Data Visualization...")
+    fig, axes = plt.subplots(2, 5, figsize=(10, 4))
+    for i, ax in enumerate(axes.flatten()):
+        img = X_train[i].reshape(28, 28)
+        ax.imshow(img, cmap="gray")
+        ax.set_title(f"Label: {y_train_arr[i]}")
+        ax.axis("off")
+    plt.tight_layout()
+    plt.savefig("mnist_raw_data_samples.png")
+    plt.close()  # Free up memory
+
     # 3. Initialize Model & Hyperparameters
     model = MnistNetwork()
     epochs = 10
@@ -167,6 +185,10 @@ if __name__ == "__main__":
     num_samples = X_train.shape[0]
 
     print("Starting Training...")
+
+    # --- SETUP FOR VISUALIZATION 3: Training Curve ---
+    history_loss = []
+
     # 4. The Training Loop
     for epoch in range(epochs):
         # Shuffle data each epoch
@@ -202,33 +224,74 @@ if __name__ == "__main__":
             epoch_loss += float(loss.data.item())
             batches += 1
 
-        print(f"Epoch {epoch + 1}/{epochs} | Average Loss: {epoch_loss / batches:.4f}")
+        avg_loss = epoch_loss / batches
+        print(f"Epoch {epoch + 1}/{epochs} | Average Loss: {avg_loss:.4f}")
 
-        # 5. Evaluate Accuracy on the Test Set
-        print("\nEvaluating Test Accuracy...")
+        # Track loss for plotting
+        history_loss.append(avg_loss)
 
-        # Format the test data exactly like the training data
-        X_test = np.array(x_test).reshape(-1, 784) / 255.0
-        y_test_arr = np.array(y_test)
+    # --- VISUALIZATION 3: Save Training Curve ---
+    print("Saving Training Curve Visualization...")
+    plt.figure(figsize=(8, 5))
+    plt.plot(range(1, epochs + 1), history_loss, marker="o", linestyle="-", color="b")
+    plt.title("Training Loss Over Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Cross Entropy Loss")
+    plt.grid(True)
+    plt.savefig("mnist_training_curve.png")
+    plt.close()
 
-        correct_predictions = 0
-        total_test_samples = X_test.shape[0]
+    # 5. Evaluate Accuracy on the Test Set
+    print("\nEvaluating Test Accuracy...")
 
-        # Run through the test set in batches (keeps memory usage low)
-        for i in range(0, total_test_samples, batch_size):
-            # Get mini-batch
-            X_batch = X_test[i : i + batch_size]
-            y_batch = y_test_arr[i : i + batch_size]
+    # Format the test data exactly like the training data
+    X_test = np.array(x_test).reshape(-1, 784) / 255.0
+    y_test_arr = np.array(y_test)
 
-            # Forward pass (no need to calculate gradients here!)
-            x_val = Value(X_batch)
-            logits = model(x_val)
+    correct_predictions = 0
+    total_test_samples = X_test.shape[0]
 
-            # The prediction is the index of the highest logit
-            predictions = np.argmax(logits.data, axis=1)
+    # --- SETUP FOR VISUALIZATION 4: Predictions ---
+    all_predictions = []
 
-            # Count how many predictions match the true label
-            correct_predictions += np.sum(predictions == y_batch)
+    # Run through the test set in batches (keeps memory usage low)
+    for i in range(0, total_test_samples, batch_size):
+        # Get mini-batch
+        X_batch = X_test[i : i + batch_size]
+        y_batch = y_test_arr[i : i + batch_size]
 
-        accuracy = (correct_predictions / total_test_samples) * 100
-        print(f"Final Test Accuracy: {accuracy:.2f}%")
+        # Forward pass (no need to calculate gradients here!)
+        x_val = Value(X_batch)
+        logits = model(x_val)
+
+        # The prediction is the index of the highest logit
+        predictions = np.argmax(logits.data, axis=1)
+
+        # Track predictions for the confusion matrix
+        all_predictions.extend(predictions)
+
+        # Count how many predictions match the true label
+        correct_predictions += np.sum(predictions == y_batch)
+
+    accuracy = (correct_predictions / total_test_samples) * 100
+    print(f"Final Test Accuracy: {accuracy:.2f}%")
+
+    # --- VISUALIZATION 4: Save Confusion Matrix ---
+    print("Saving Confusion Matrix...")
+    cm = confusion_matrix(y_test_arr, all_predictions)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+    plt.title("Confusion Matrix on Test Set")
+    plt.xlabel("Predicted Label")
+    plt.ylabel("True Label")
+    plt.savefig("mnist_confusion_matrix.png")
+    plt.close()
+
+    # --- SAVE METRICS TO FILE ---
+    print("Saving Metrics to JSON...")
+    metrics = {"final_accuracy": float(accuracy), "loss_per_epoch": history_loss}
+
+    with open("mnist_training_metrics.json", "w") as f:
+        json.dump(metrics, f, indent=4)
+
+    print("\nDone! Check your folder for the new .png and .json files.")
